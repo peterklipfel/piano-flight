@@ -1,0 +1,129 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://d3js.org/d3-timer.v1.min.js"></script>
+</head>
+<body style="margin: 0">
+<script>
+
+var svgContainer = d3.select("body").append("svg")
+                                    .attr("width", '100%')
+                                    .attr("height", '100%')
+                                    .attr("id", 'main-window')
+
+starshipLayer = svgContainer.append("g")
+enemyLayer = svgContainer.append("g")
+
+let height = d3.select('#main-window').node().getBoundingClientRect().height;
+let width = d3.select('#main-window').node().getBoundingClientRect().width;
+
+d3.xml('main_ship.svg').then( data => {
+  shipAspectRatio = 115/150
+  let el = data.documentElement
+  starshipLayer.node().append(data.documentElement)
+  el.setAttribute("y", height-150)
+  el.setAttribute("x", (width/2)-62)
+  starshipLayer.selectAll("path").transition().duration(10).attr("stroke", "blue")
+})
+
+d3.select("body").transition()
+    .style("background-color", "black");
+
+function loopStars() {
+  let starLocations = Array.from({length: width/2}, () => Math.floor(Math.random() * width));
+
+  let stars = svgContainer
+    .selectAll("circle")
+    .data(starLocations)
+
+  stars.enter().append("circle")
+    .style("stroke", "gray")
+    .style("fill", "black")
+    .attr('class', 'star')
+    .attr("r", 3)
+    .attr("cx", function(d) { return d*10 } )
+    .attr("cy", 0 )
+
+  stars = d3.selectAll('.star')
+  d3.interval(function(elapsed){
+    stars
+      .transition().attr("cy", height+10 )
+      .transition().attr("cy", 0)
+  }, 1000)
+
+  stars.exit().remove()
+}
+
+loopStars()
+
+function loadEnemies(enemies, update = false) {
+  if(update) {
+    enemyContainers = enemyLayer
+                        .selectAll("g")
+                        .data(enemies)
+  } else {
+    enemyContainers = enemyLayer
+                        .selectAll("g")
+                        .data(enemies)
+                        .enter().append("g")
+  }
+
+
+  if(update) {
+    enemyContainers.exit().remove()
+    enemyContainers.enter().append("g")
+  }
+
+  d3.xml('enemy_ship.svg').then( data => {
+    let el = data.documentElement
+    el.setAttribute("y", 50)
+    el.setAttribute("x", (width/2)-81)
+    starshipLayer.selectAll("path").transition().duration(10).attr("stroke", "blue")
+    enemyContainers.node().append(el)
+  })
+
+  enemyContainers
+    .append("rect")
+    .attr('x', function(d, i) { return 10 + i*100 })
+    .attr('y', function(d, i) { return 10 + i*100 })
+    .attr('width', 50)
+    .attr('height', 50)
+    .attr('fill', 'lightblue')
+    .append("text")
+
+  enemyContainers
+    .append("text")
+    .text(function(chord){ return chord })
+    .attr('x', function(d, i) { return 10 + i*100 })
+    .attr('y', function(d, i) { return 10 + i*100 })
+    .attr('dy', '30px')
+}
+
+let startingEnemies = ['Am', 'Em7', 'G7', 'Bm7b5']
+
+loadEnemies(startingEnemies)
+
+
+document.body.onkeyup = function(e){
+  if(e.keyCode == 32){
+    // spacebar pressed
+    startingEnemies.pop()
+    loadEnemies(startingEnemies, true)
+  }
+}
+
+function pulse() {
+  starshipLayer.selectAll("path")
+    .transition().duration(250).attr('stroke-width', '5px')
+  starshipLayer.selectAll("path")
+    .transition().delay(250).duration(250).attr('stroke-width', '1px')
+}
+
+var t = d3.interval(function(elapsed) {
+  pulse()
+}, 500);
+
+</script>
+</body>
+</html>

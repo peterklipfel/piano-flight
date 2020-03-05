@@ -1,0 +1,141 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg.min.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://d3js.org/d3-timer.v1.min.js"></script>
+<style>
+.black { background-color: #000; }
+.light { background-color: #FFFAFF; }
+.red { background-color: #FFFAFF; }
+
+</style>
+</head>
+<body style="margin: 0">
+<svg id="mainView" style="width: 100%; height: 100%; background-color: #000;">
+  <g id="starLayer"></g>
+  <g id="enemyLayer"></g>
+  <g id="shipLayer"></g>
+</svg>
+<script>
+
+
+var width = document.getElementById('mainView').getBoundingClientRect().width;
+var height = document.getElementById('mainView').getBoundingClientRect().height;
+var shipY = height-150
+var shipX = (width/2)-62
+
+var s = Snap("#mainView");
+var shipLayer = Snap("#shipLayer");
+var starLayer = Snap("#starLayer");
+var enemyLayer = Snap("#enemyLayer");
+
+function drawStars(starDensity) {
+  function drawNStars(starDensity) {
+    const size = Math.floor(Math.random() * Math.floor(3));
+
+    i = starDensity
+    while(i > 0) {
+      const x1 = Math.floor(Math.random() * Math.floor(width));
+
+      var star = starLayer.circle(x1, 0, size);
+
+      // By default its black, lets change its attributes
+      star.attr({ fill: "#fff", zIndex: '0' });
+
+      star.animate({ transform: 'translate(0, '+(height + 200)+')' }, 1000, function() { x = star.remove() })
+
+      i--
+    }
+  }
+
+  setInterval(function() { drawNStars(starDensity) }, 100)
+}
+
+function drawMainShip() {
+  Snap.load('/main_ship.svg', function(data) {
+    shipLayer.append(data)
+
+    const starship = document.getElementById('starship_1')
+    starship.setAttribute("y", shipY)
+    starship.setAttribute("x", shipX)
+  })
+
+}
+
+function spawnEnemies(numEnemies) {
+  i = numEnemies
+  while(i > 0) {
+    Snap.load('/enemy_ship.svg', function(data) {
+      // The ship should start off outside of the screen
+      const hiddenSpawnOffset = -200
+      // randomize the x coordinate of the ship
+      var initialOffset = Math.floor(Math.random() * Math.floor(width));
+      var shipSpeed = Math.floor((Math.random()*Math.floor(20000)) + 30000);
+
+      data.node.firstElementChild.setAttribute("y", hiddenSpawnOffset)
+      data.node.firstElementChild.setAttribute("x", initialOffset)
+
+      var el = Snap(data.node.firstElementChild).appendTo(enemyLayer)
+      possibleChords = ["Cmin7", "Dmin7", "Amin7", "Emin7", "Fmaj7", "G7"]
+      var chord = possibleChords[Math.floor(Math.random()*possibleChords.length)];
+      el.select('.chordText').attr({'text': chord})
+
+      var transformString = 'translate('+ (shipX - initialOffset) +', '+ (shipY - hiddenSpawnOffset) +')'
+
+      el.animate({ transform: transformString }, shipSpeed, function() { el.remove() })
+    })
+
+    i--
+  }
+}
+
+function pulse(selector) {
+  const starshipLayer = d3.selectAll(selector)
+  starshipLayer.selectAll("path").transition().duration(10).attr("stroke", "#ff0").attr("stroke-width", "5px")
+
+  starshipLayer.selectAll("path")
+    .transition().duration(250).attr('stroke-width', '1px')
+  starshipLayer.selectAll("path")
+    .transition().delay(250).duration(250).attr('stroke-width', '5px')
+}
+
+var t = d3.interval(function(elapsed) {
+  pulse('#starship_1')
+  pulse('.enemy_ship')
+  // here, we're starting the song repeatedly, but browsers seem to handle this
+  // by continuing to play the file, but it's a kludge to get the song to play
+  // once it's loaded, and to synchronize the pulsing with the song play start
+  var song = document.getElementById("song");
+  song.play();
+
+}, 500);
+function killEnemy() {
+  console.log('killing enemy')
+  console.log(enemyLayer)
+  var enemies = enemyLayer.children()
+  console.log(enemies)
+  var enemy = enemies[Math.floor(Math.random()*enemies.length)];
+
+  console.log(enemy)
+
+  if(enemy){
+    enemy.remove()
+  }
+  spawnEnemies(1);
+}
+
+drawStars(1);
+drawMainShip();
+spawnEnemies(5);
+document.body.onkeyup = function(e){
+  if(e.keyCode == 32){
+    // spacebar pressed
+    console.log('pressed space bar')
+    killEnemy()
+  }
+}
+</script>
+<audio id="song" src="/samples/song.mp3"></audio>
+</body>
+</html>
